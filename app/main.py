@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # app/main.py
 import os
 from dotenv import load_dotenv
@@ -20,7 +24,7 @@ from app.handlers.broadcast_handler import broadcast
 from app.handlers.export_handler import export
 from app.handlers.language_handler import set_language
 from app.handlers.callback_handler import handle_settings_callback
-from app.conversations.target_conversation import handle_target_input, cancel as target_cancel
+from app.conversations.target_conversation import handle_target_input, cancel_callback as target_cancel
 from app.conversations.close_conversation import handle_closing_input, cancel as close_cancel
 from app.conversations.stoploss_conversation import handle_stoploss_input, cancel as stoploss_cancel
 from app.conversations.name_conversation import handle_name_input, cancel as name_cancel
