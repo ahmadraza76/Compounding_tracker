@@ -1,0 +1,10 @@
+# .gitignore
+.env
+user_data.json
+__pycache__/
+*.pyc
+.pytest_cache/
+.vectors/
+.replit_cache/
+.venv/
+*.xlsx
