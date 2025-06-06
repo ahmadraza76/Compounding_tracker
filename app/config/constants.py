@@ -1,0 +1,12 @@
+# app/config/constants.py
+TARGET = "TARGET"
+CLOSING = "CLOSING"
+STOPLOSS = "STOPLOSS"
+NAME = "NAME"
+RATE_MODE = "RATE_MODE"
+CURRENCY_CHANGE = "CURRENCY_CHANGE"
+BROADCAST = "BROADCAST"
+LANGUAGE = "LANGUAGE"
+
+CURRENCY = "₹"  # Default currency
+OWNER_ID = "YOUR_TELEGRAM_ID"  # Replace with your Telegram ID
