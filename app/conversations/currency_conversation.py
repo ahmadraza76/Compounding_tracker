@@ -1,4 +1,4 @@
-app/conversations/currency_conversation.py
+#app/conversations/currency_conversation.py
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import update_user_data, get_user_data
