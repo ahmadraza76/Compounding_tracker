@@ -5,12 +5,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # app/main.py
 import os
 from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
     ConversationHandler,
+    ContextTypes,
     filters,
 )
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -28,7 +30,7 @@ from app.conversations.target_conversation import handle_target_input, cancel_ca
 from app.conversations.close_conversation import handle_closing_input, cancel as close_cancel
 from app.conversations.stoploss_conversation import handle_stoploss_input, cancel as stoploss_cancel
 from app.conversations.name_conversation import handle_name_input, cancel as name_cancel
-from app.conversations.rate_mode_conversation import handle_rate_mode_input, cancel as rate_mode_cancel
+from app.conversations.rate_mode_conversation import handle_rate_input, cancel as rate_mode_cancel
 from app.conversations.currency_conversation import handle_currency_input, cancel as currency_cancel
 from app.conversations.broadcast_conversation import handle_broadcast_input, cancel as broadcast_cancel
 from app.conversations.language_conversation import handle_language_input, cancel as language_cancel
@@ -86,7 +88,7 @@ def main() -> None:
     )
     rate_mode_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_settings_callback, pattern="^edit_rate_mode_")],
-        states={RATE_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_rate_mode_input)]},
+        states={RATE_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_rate_input)]},
         fallbacks=[CommandHandler("cancel", rate_mode_cancel)]
     )
     currency_conv_handler = ConversationHandler(
@@ -119,7 +121,7 @@ def main() -> None:
 
     # Schedule Reminders
     scheduler = AsyncIOScheduler()
-    schedule_reminders(scheduler)
+    schedule_reminders(scheduler, application)
     scheduler.start()
 
     # Start Bot

@@ -1,6 +1,6 @@
 # app/handlers/close_handler.py
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import get_user_data, update_user_data
 from app.config.constants import CLOSING
 from app.config.messages import MESSAGES

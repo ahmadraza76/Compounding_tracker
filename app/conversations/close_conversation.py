@@ -44,7 +44,7 @@ async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # Check target
         if user_data.get("target"):
-            target_amount = float(user_data["target", "target_amount"])
+            target_amount = float(user_data["target"]["target_amount"])
             if balance >= target_amount:
                 await update.message.reply_text(
                     MESSAGES[language]["target_achieved"],
@@ -57,7 +57,7 @@ async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYP
         })
 
         await update.message.reply_text(
-            "✅ Balance successfully recorded!\nUse /status to view your progress.",
+            "✅ बैलेंस सफलतापूर्वक रिकॉर्ड किया गया!\nअपनी प्रगति देखने के लिए /status का उपयोग करें।" if language == "hi" else
             "✅ Balance successfully recorded!\nUse /status to view your progress.",
             parse_mode="Markdown"
         )

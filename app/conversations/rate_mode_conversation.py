@@ -35,7 +35,7 @@ async def handle_rate_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         if not user_data.get("target"):
             await update.message.reply_text(
-                "❌ No target first. Use /target to set one.",
+                "❌ No target set first. Use /target to set one.",
                 parse_mode="Markdown"
             )
             return ConversationHandler.END
@@ -50,8 +50,8 @@ async def handle_rate_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         })
 
         await update.message.reply_text(
-            "✅ Rate set to {rate}% and mode to {mode}!\nUse /settings to view your settings."
-            f"✅ Rate set to {rate}% and mode to {mode}!\n",
+            f"✅ दर {rate}% और मोड {mode} पर सेट किया गया!\nअपनी सेटिंग्स देखने के लिए /settings का उपयोग करें।" if language == "hi" else
+            f"✅ Rate set to {rate}% and mode to {mode}!\nUse /settings to view your settings.",
             parse_mode="Markdown"
         )
 
@@ -64,9 +64,9 @@ async def handle_rate_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
         return RATE_MODE
 
-async def cancel(update: None, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel rate and mode setting process."""
-    user_id = str(update.user_data.id)
+    user_id = str(update.effective_user.id)
     user_data = get_user_data(user_id)
     language = user_data.get("language", "en")
 
