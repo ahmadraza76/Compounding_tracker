@@ -9,4 +9,4 @@ BROADCAST = "BROADCAST"
 LANGUAGE = "LANGUAGE"
 
 CURRENCY = "₹"  # Default currency
-OWNER_ID = "YOUR_TELEGRAM_ID"  # Replace with your actual Telegram ID
+OWNER_ID = "5620922625"  # Your actual Telegram ID
