@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # app/main.py
 import os
+import logging
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -25,6 +26,7 @@ from app.handlers.reset_handler import reset
 from app.handlers.broadcast_handler import broadcast
 from app.handlers.export_handler import export
 from app.handlers.language_handler import set_language
+from app.handlers.help_handler import help_command
 from app.handlers.callback_handler import handle_settings_callback
 from app.conversations.target_conversation import handle_target_input, cancel_callback as target_cancel
 from app.conversations.close_conversation import handle_closing_input, cancel as close_cancel
@@ -39,6 +41,13 @@ from app.utils.data_utils import get_user_data
 from app.config.constants import TARGET, CLOSING, STOPLOSS, NAME, RATE_MODE, CURRENCY_CHANGE, BROADCAST, LANGUAGE
 from app.config.messages import MESSAGES
 
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle unknown commands."""
     user_id = str(update.effective_user.id)
@@ -49,6 +58,10 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         parse_mode="Markdown"
     )
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a telegram message to notify the developer."""
+    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+
 def main() -> None:
     """Initialize and run the bot."""
     load_dotenv()
@@ -56,7 +69,11 @@ def main() -> None:
     if not bot_token:
         raise ValueError("TELEGRAM_BOT_TOKEN not found in environment")
 
+    # Create application
     application = Application.builder().token(bot_token).build()
+
+    # Add error handler
+    application.add_error_handler(error_handler)
 
     # Command Handlers
     application.add_handler(CommandHandler("start", start))
@@ -64,6 +81,7 @@ def main() -> None:
     application.add_handler(CommandHandler("settings", settings))
     application.add_handler(CommandHandler("reset", reset))
     application.add_handler(CommandHandler("export", export))
+    application.add_handler(CommandHandler("help", help_command))
 
     # Conversation Handlers
     target_conv_handler = ConversationHandler(
@@ -71,43 +89,50 @@ def main() -> None:
         states={TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_target_input)]},
         fallbacks=[CommandHandler("cancel", target_cancel)]
     )
+    
     closing_conv_handler = ConversationHandler(
         entry_points=[CommandHandler("close", close_balance), CallbackQueryHandler(handle_settings_callback, pattern="^update_balance_")],
         states={CLOSING: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_closing_input)]},
         fallbacks=[CommandHandler("cancel", close_cancel)]
     )
+    
     stoploss_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_settings_callback, pattern="^edit_stoploss_")],
         states={STOPLOSS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_stoploss_input)]},
         fallbacks=[CommandHandler("cancel", stoploss_cancel)]
     )
+    
     name_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_settings_callback, pattern="^edit_name_")],
         states={NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_name_input)]},
         fallbacks=[CommandHandler("cancel", name_cancel)]
     )
+    
     rate_mode_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_settings_callback, pattern="^edit_rate_mode_")],
         states={RATE_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_rate_input)]},
         fallbacks=[CommandHandler("cancel", rate_mode_cancel)]
     )
+    
     currency_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_settings_callback, pattern="^edit_currency_")],
         states={CURRENCY_CHANGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_currency_input)]},
         fallbacks=[CommandHandler("cancel", currency_cancel)]
     )
+    
     broadcast_conv_handler = ConversationHandler(
         entry_points=[CommandHandler("broadcast", broadcast)],
         states={BROADCAST: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_broadcast_input)]},
         fallbacks=[CommandHandler("cancel", broadcast_cancel)]
     )
+    
     language_conv_handler = ConversationHandler(
         entry_points=[CommandHandler("language", set_language)],
         states={LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_language_input)]},
         fallbacks=[CommandHandler("cancel", language_cancel)]
     )
 
-    # Add Handlers
+    # Add all handlers
     application.add_handler(target_conv_handler)
     application.add_handler(closing_conv_handler)
     application.add_handler(stoploss_conv_handler)
@@ -120,12 +145,17 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
 
     # Schedule Reminders
-    scheduler = AsyncIOScheduler()
-    schedule_reminders(scheduler, application)
-    scheduler.start()
+    try:
+        scheduler = AsyncIOScheduler()
+        schedule_reminders(scheduler, application)
+        scheduler.start()
+        logger.info("Scheduler started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}")
 
     # Start Bot
-    application.run_polling()
+    logger.info("Starting bot...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()

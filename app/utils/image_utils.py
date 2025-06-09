@@ -1,30 +1,90 @@
 # app/utils/image_utils.py
 from PIL import Image, ImageDraw, ImageFont
 import io
+import os
 from app.utils.calculation_utils import calculate_progress
 from app.config.constants import CURRENCY
+from app.config.messages import MESSAGES
+
+def get_font(size: int, bold: bool = False):
+    """Get font with fallback to default."""
+    try:
+        if bold:
+            font_path = os.path.join("assets", "fonts", "DejaVuSans-Bold.ttf")
+        else:
+            font_path = os.path.join("assets", "fonts", "DejaVuSans.ttf")
+        
+        if os.path.exists(font_path):
+            return ImageFont.truetype(font_path, size)
+    except Exception:
+        pass
+    
+    # Fallback to default font
+    return ImageFont.load_default()
+
+def draw_progress_bar(draw, x, y, width, height, progress, bg_color, fill_color):
+    """Draw a progress bar."""
+    # Background
+    draw.rectangle([x, y, x + width, y + height], fill=bg_color, outline=(100, 100, 100))
+    
+    # Progress fill
+    if progress > 0:
+        fill_width = int(width * min(progress, 1.0))
+        draw.rectangle([x, y, x + fill_width, y + height], fill=fill_color)
+    
+    # Border
+    draw.rectangle([x, y, x + width, y + height], outline=(150, 150, 150), width=2)
 
 def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) -> bytes:
-    """Generate Daily Profile Card as bytes."""
-    width, height = 800, 600
-    background_color = (30, 30, 30)  # Dark gray
-    text_color = (255, 255, 255)     # White
-    accent_color = (0, 200, 0)       # Green
+    """Generate enhanced Daily Profile Card with beautiful design."""
+    width, height = 900, 700
+    
+    # Color scheme
+    bg_gradient_start = (25, 25, 35)    # Dark blue-gray
+    bg_gradient_end = (45, 45, 65)      # Lighter blue-gray
+    card_bg = (255, 255, 255)           # White card background
+    text_primary = (33, 37, 41)         # Dark text
+    text_secondary = (108, 117, 125)    # Gray text
+    accent_green = (40, 167, 69)        # Success green
+    accent_red = (220, 53, 69)          # Danger red
+    accent_yellow = (255, 193, 7)       # Warning yellow
+    accent_blue = (0, 123, 255)         # Primary blue
 
-    # Create blank image
-    image = Image.new("RGB", (width, height), background_color)
+    # Create image with gradient background
+    image = Image.new("RGB", (width, height), bg_gradient_start)
     draw = ImageDraw.Draw(image)
+    
+    # Create gradient background
+    for i in range(height):
+        ratio = i / height
+        r = int(bg_gradient_start[0] * (1 - ratio) + bg_gradient_end[0] * ratio)
+        g = int(bg_gradient_start[1] * (1 - ratio) + bg_gradient_end[1] * ratio)
+        b = int(bg_gradient_start[2] * (1 - ratio) + bg_gradient_end[2] * ratio)
+        draw.line([(0, i), (width, i)], fill=(r, g, b))
 
-    # Load font
-    try:
-        font_path = "assets/fonts/DejaVuSans.ttf"
-        font_large = ImageFont.truetype(font_path, 40)
-        font_medium = ImageFont.truetype(font_path, 30)
-        font_small = ImageFont.truetype(font_path, 20)
-    except IOError:
-        font_large = ImageFont.load_default()
-        font_medium = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+    # Main card background with rounded corners effect
+    card_margin = 30
+    card_x = card_margin
+    card_y = card_margin
+    card_width = width - (2 * card_margin)
+    card_height = height - (2 * card_margin)
+    
+    # Draw card shadow
+    shadow_offset = 8
+    draw.rectangle([card_x + shadow_offset, card_y + shadow_offset, 
+                   card_x + card_width + shadow_offset, card_y + card_height + shadow_offset], 
+                   fill=(0, 0, 0, 50))
+    
+    # Draw main card
+    draw.rectangle([card_x, card_y, card_x + card_width, card_y + card_height], 
+                   fill=card_bg, outline=(200, 200, 200), width=2)
+
+    # Load fonts
+    font_title = get_font(32, bold=True)
+    font_large = get_font(24, bold=True)
+    font_medium = get_font(20)
+    font_small = get_font(16)
+    font_tiny = get_font(14)
 
     # User data
     language = user_data.get("language", "en")
@@ -32,54 +92,191 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
     currency = user_data.get("currency", CURRENCY)
     progress = calculate_progress(user_data)
 
-    # Draw profile photo or default avatar
-    photo_size = 150
+    # Header section
+    header_y = card_y + 20
+    
+    # Profile photo section
+    photo_size = 100
+    photo_x = card_x + 30
+    photo_y = header_y + 10
+    
     if profile_photo:
         try:
             photo = Image.open(io.BytesIO(profile_photo)).resize((photo_size, photo_size))
+            # Create circular mask
             mask = Image.new("L", (photo_size, photo_size), 0)
             mask_draw = ImageDraw.Draw(mask)
             mask_draw.ellipse((0, 0, photo_size, photo_size), fill=255)
+            
+            # Apply mask
             photo = photo.convert("RGBA")
             photo.putalpha(mask)
-            image.paste(photo, (50, 50), photo)
+            
+            # Paste photo
+            image.paste(photo, (photo_x, photo_y), photo)
+            
+            # Draw border around photo
+            draw.ellipse([photo_x - 3, photo_y - 3, photo_x + photo_size + 3, photo_y + photo_size + 3], 
+                        outline=accent_blue, width=4)
         except Exception:
-            draw.ellipse((50, 50, 50 + photo_size, 50 + photo_size), fill=(100, 100, 100))
+            # Default avatar
+            draw.ellipse([photo_x, photo_y, photo_x + photo_size, photo_y + photo_size], 
+                        fill=(150, 150, 150), outline=accent_blue, width=4)
+            # Add user icon
+            draw.text((photo_x + photo_size//2 - 10, photo_y + photo_size//2 - 15), "👤", 
+                     font=get_font(30), fill=(255, 255, 255))
     else:
-        draw.ellipse((50, 50, 50 + photo_size, 50 + photo_size), fill=(100, 100, 100))
+        # Default avatar
+        draw.ellipse([photo_x, photo_y, photo_x + photo_size, photo_y + photo_size], 
+                    fill=(150, 150, 150), outline=accent_blue, width=4)
+        draw.text((photo_x + photo_size//2 - 10, photo_y + photo_size//2 - 15), "👤", 
+                 font=get_font(30), fill=(255, 255, 255))
 
-    # Draw text
-    y_offset = 50
-    draw.text((250, y_offset), f"{'Daily Profile' if language == 'en' else 'दैनिक प्रोफाइल'}", font=font_large, fill=text_color)
-    y_offset += 60
-    draw.text((250, y_offset), f"{'Name' if language == 'en' else 'नाम'}: {name}", font=font_medium, fill=text_color)
-    y_offset += 50
+    # Title and name section
+    title_x = photo_x + photo_size + 30
+    title_y = header_y + 10
+    
+    title_text = MESSAGES[language]["profile_card_title"]
+    draw.text((title_x, title_y), title_text, font=font_title, fill=accent_blue)
+    
+    name_y = title_y + 40
+    draw.text((title_x, name_y), f"👤 {name}", font=font_large, fill=text_primary)
+
+    # Main content area
+    content_y = header_y + 140
+    left_col_x = card_x + 30
+    right_col_x = card_x + card_width // 2 + 20
+    col_width = card_width // 2 - 50
 
     if user_data.get("target"):
         target = user_data["target"]
-        draw.text((50, y_offset), f"{'Day' if language == 'en' else 'दिन'}: {progress['days_passed'] + 1}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Target' if language == 'en' else 'लक्ष्य'}: {currency}{float(target['target_amount']):,.2f}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Start' if language == 'en' else 'शुरुआत'}: {currency}{float(target['start_amount']):,.2f}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Rate' if language == 'en' else 'दर'}: {target['rate']}% {'per' if language == 'en' else 'प्रति'} {target['mode']}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Today\'s Target' if language == 'en' else 'आज का लक्ष्य'}: {currency}{progress['expected_balance']:,.2f}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Profit Goal' if language == 'en' else 'लाभ लक्ष्य'}: {currency}{progress['today_profit_goal']:,.2f}", font=font_small, fill=text_color)
-        y_offset += 30
-        stoploss_text = f"{progress['stoploss_level']:,.2f}" if progress['stoploss_level'] else ('Not set' if language == 'en' else 'सेट नहीं')
-        draw.text((50, y_offset), f"{'Stop Loss' if language == 'en' else 'स्टॉप लॉस'}: {currency}{stoploss_text}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Balance' if language == 'en' else 'बैलेंस'}: {currency}{progress['current_balance']:,.2f}", font=font_small, fill=text_color)
-        y_offset += 30
-        draw.text((50, y_offset), f"{'Status' if language == 'en' else 'स्थिति'}: {progress['status_badge']}", font=font_small, fill=accent_color)
+        
+        # Left column - Target info
+        y_offset = content_y
+        
+        # Day counter with highlight
+        day_text = f"{MESSAGES[language]['day_label']} {progress['days_passed'] + 1}"
+        day_bg_width = len(day_text) * 12 + 20
+        draw.rectangle([left_col_x - 5, y_offset - 5, left_col_x + day_bg_width, y_offset + 25], 
+                      fill=accent_blue, outline=accent_blue)
+        draw.text((left_col_x, y_offset), day_text, font=font_medium, fill=(255, 255, 255))
+        y_offset += 45
+
+        # Target amount
+        target_text = f"🎯 {MESSAGES[language]['target_label']}: {currency}{float(target['target_amount']):,.2f}"
+        draw.text((left_col_x, y_offset), target_text, font=font_medium, fill=text_primary)
+        y_offset += 35
+
+        # Start amount
+        start_text = f"💰 {MESSAGES[language]['start_label']}: {currency}{float(target['start_amount']):,.2f}"
+        draw.text((left_col_x, y_offset), start_text, font=font_medium, fill=text_secondary)
+        y_offset += 35
+
+        # Rate and mode
+        rate_text = f"📈 {MESSAGES[language]['rate_label']}: {target['rate']}% {target['mode']}"
+        draw.text((left_col_x, y_offset), rate_text, font=font_medium, fill=text_secondary)
+        y_offset += 50
+
+        # Right column - Progress info
+        y_offset = content_y
+
+        # Expected balance
+        expected_text = f"🎯 {MESSAGES[language]['expected_label']}: {currency}{progress['expected_balance']:,.2f}"
+        draw.text((right_col_x, y_offset), expected_text, font=font_medium, fill=accent_blue)
+        y_offset += 35
+
+        # Current balance
+        current_text = f"💼 {MESSAGES[language]['current_label']}: {currency}{progress['current_balance']:,.2f}"
+        balance_color = accent_green if progress['current_balance'] >= progress['expected_balance'] else accent_red
+        draw.text((right_col_x, y_offset), current_text, font=font_medium, fill=balance_color)
+        y_offset += 35
+
+        # Profit goal
+        profit_text = f"💵 {MESSAGES[language]['profit_goal_label']}: {currency}{progress['today_profit_goal']:,.2f}"
+        draw.text((right_col_x, y_offset), profit_text, font=font_medium, fill=text_secondary)
+        y_offset += 35
+
+        # Stop-loss
+        if progress['stoploss_level']:
+            stoploss_text = f"📉 {MESSAGES[language]['stoploss_label']}: {currency}{progress['stoploss_level']:,.2f}"
+        else:
+            stoploss_text = f"📉 {MESSAGES[language]['stoploss_label']}: {MESSAGES[language]['not_set']}"
+        draw.text((right_col_x, y_offset), stoploss_text, font=font_medium, fill=text_secondary)
+        y_offset += 50
+
+        # Progress bar section
+        progress_y = content_y + 200
+        progress_label = f"{MESSAGES[language]['progress_label']}:"
+        draw.text((left_col_x, progress_y), progress_label, font=font_medium, fill=text_primary)
+        
+        # Calculate progress percentage
+        target_amount = float(target['target_amount'])
+        start_amount = float(target['start_amount'])
+        current_balance = progress['current_balance']
+        
+        if target_amount > start_amount:
+            progress_percent = (current_balance - start_amount) / (target_amount - start_amount)
+        else:
+            progress_percent = 0
+        
+        # Progress bar
+        bar_y = progress_y + 30
+        bar_width = card_width - 60
+        bar_height = 25
+        
+        # Determine progress bar color
+        if progress_percent >= 1.0:
+            bar_color = accent_green
+        elif progress_percent >= 0.7:
+            bar_color = accent_blue
+        elif progress_percent >= 0.3:
+            bar_color = accent_yellow
+        else:
+            bar_color = accent_red
+        
+        draw_progress_bar(draw, left_col_x, bar_y, bar_width, bar_height, 
+                         progress_percent, (240, 240, 240), bar_color)
+        
+        # Progress percentage text
+        progress_text = f"{min(progress_percent * 100, 100):.1f}%"
+        text_width = draw.textlength(progress_text, font=font_small)
+        draw.text((left_col_x + bar_width - text_width, bar_y + bar_height + 10), 
+                 progress_text, font=font_small, fill=text_primary)
+
+        # Status badge
+        status_y = bar_y + bar_height + 40
+        status_text = f"{MESSAGES[language]['status_label']}: {progress['status_badge']}"
+        
+        # Status background color
+        if progress['status_badge'] == "🟢":
+            status_bg = accent_green
+        elif progress['status_badge'] == "🟡":
+            status_bg = accent_yellow
+        else:
+            status_bg = accent_red
+        
+        status_width = len(status_text) * 10 + 20
+        draw.rectangle([left_col_x - 5, status_y - 5, left_col_x + status_width, status_y + 25], 
+                      fill=status_bg, outline=status_bg)
+        draw.text((left_col_x, status_y), status_text, font=font_medium, fill=(255, 255, 255))
+
     else:
-        draw.text((50, y_offset), f"{'No target set' if language == 'en' else 'कोई लक्ष्य सेट नहीं'}", font=font_small, fill=text_color)
+        # No target set
+        no_target_y = content_y + 100
+        no_target_text = MESSAGES[language]["no_target"]
+        text_width = draw.textlength(no_target_text, font=font_large)
+        draw.text((card_x + (card_width - text_width) // 2, no_target_y), 
+                 no_target_text, font=font_large, fill=accent_red)
+
+    # Footer
+    footer_y = card_y + card_height - 40
+    footer_text = "📊 Compounding Tracker Bot"
+    text_width = draw.textlength(footer_text, font=font_tiny)
+    draw.text((card_x + (card_width - text_width) // 2, footer_y), 
+             footer_text, font=font_tiny, fill=text_secondary)
 
     # Save to bytes
     buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
+    image.save(buffer, format="PNG", quality=95)
     buffer.seek(0)
     return buffer.getvalue()

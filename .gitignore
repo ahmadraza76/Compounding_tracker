@@ -128,17 +128,21 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Bot specific files
+# Project specific
 user_data.json
-*.log
+user_data.json.backup
+user_data.json.tmp
 *.xlsx
+*.png
+*.jpg
+*.jpeg
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
