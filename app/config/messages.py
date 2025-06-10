@@ -164,7 +164,8 @@ Need help? Contact support or check /settings for more options!""",
         "stoploss_label": "Stop-Loss",
         "status_label": "Status",
         "progress_label": "Progress",
-        "not_set": "Not Set"
+        "not_set": "Not Set",
+        "status_image_error": "Sorry, there was an error generating your status image. Please try again later."
     },
     
     "hi": {
@@ -331,6 +332,7 @@ Need help? Contact support or check /settings for more options!""",
         "stoploss_label": "स्टॉप-लॉस",
         "status_label": "स्थिति",
         "progress_label": "प्रगति",
-        "not_set": "सेट नहीं"
+        "not_set": "सेट नहीं",
+        "status_image_error": "क्षमा करें, आपकी स्थिति छवि बनाने में कोई त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
     }
 }

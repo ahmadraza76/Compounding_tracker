@@ -7,6 +7,9 @@ from app.utils.calculation_utils import calculate_progress
 from app.config.constants import CURRENCY
 from app.config.messages import MESSAGES
 import telegram.error
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /status command, showing progress summary and profile card."""
@@ -14,6 +17,8 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(user.id)
     user_data = get_user_data(user_id)
     language = user_data.get("language", "en")
+
+    logger.info(f"Generating status for user {user_id} (language: {language})")
 
     profile_photo = None
     try:
@@ -26,7 +31,11 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         print(f"Error fetching profile photo for user {user_id}: {str(e)}")
 
-    daily_profile_card = generate_daily_profile_card(user_data, profile_photo)
+    try:
+        daily_profile_card = generate_daily_profile_card(user_data, profile_photo)
+    except Exception as e:
+        logger.error(f"Error generating profile card for user {user_id}: {e}", exc_info=True)
+        daily_profile_card = None
 
     text_summary = f"👤 {'नाम' if language == 'hi' else 'Name'}: {user_data.get('name', user.first_name)}\n"
     if user_data.get("target"):
@@ -49,8 +58,12 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         text_summary += MESSAGES[language]["no_target"] + "\n"
 
-    await update.message.reply_photo(
-        photo=InputFile(daily_profile_card),
-        caption=MESSAGES[language]["status_summary"] + "\n\n" + text_summary,
-        parse_mode="Markdown"
-    )
+    if daily_profile_card is None:
+        error_message = MESSAGES[language].get("status_image_error", "Sorry, there was an error generating your status image. Please try again later.")
+        await update.message.reply_text(error_message)
+    else:
+        await update.message.reply_photo(
+            photo=InputFile(daily_profile_card),
+            caption=MESSAGES[language]["status_summary"] + "\n\n" + text_summary,
+            parse_mode="Markdown"
+        )

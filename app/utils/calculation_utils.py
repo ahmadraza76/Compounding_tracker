@@ -43,18 +43,30 @@ def calculate_progress(user_data: dict) -> dict:
 
     tz = pytz.timezone("Asia/Kolkata")
     current_date = datetime.now(tz)
-    start_datetime = datetime.strptime(start_date, "%Y-%m-%d") if start_date else current_date
-    days_passed = (current_date - start_datetime).days
 
-    # Calculate expected balance
-    expected_balance = calculate_compounding(start_amount, rate, mode, days_passed)
+    if user_data.get("start_date"):
+        start_datetime = datetime.strptime(user_data["start_date"], "%Y-%m-%d").replace(tzinfo=tz) # Add timezone info
+        if start_datetime > current_date:
+            start_datetime = current_date
+        days_passed = (current_date - start_datetime).days
+    else:
+        start_datetime = current_date
+        days_passed = 0
+
+    if days_passed < 0: # Should not happen with the logic above, but as a safeguard
+        days_passed = 0
+
+    # Calculate expected balance and today's profit goal
+    if days_passed == 0:
+        expected_balance = start_amount
+        today_profit_goal = calculate_compounding(start_amount, rate, mode, 1) - start_amount
+    else:
+        expected_balance = calculate_compounding(start_amount, rate, mode, days_passed)
+        prev_day_balance = calculate_compounding(start_amount, rate, mode, days_passed - 1)
+        today_profit_goal = expected_balance - prev_day_balance
 
     # Get current balance from history
     current_balance = history[-1]["balance"] if history else start_amount
-
-    # Calculate today's profit goal
-    prev_day_balance = calculate_compounding(start_amount, rate, mode, days_passed - 1)
-    today_profit_goal = expected_balance - prev_day_balance
 
     # Calculate stop-loss level
     stoploss_level = None
