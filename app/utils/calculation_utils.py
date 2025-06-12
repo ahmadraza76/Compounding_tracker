@@ -1,7 +1,10 @@
 # app/utils/calculation_utils.py
+import logging
 from datetime import datetime
 import pytz
 import math
+
+logger = logging.getLogger(__name__)
 
 def calculate_compounding(start_amount: float, rate: float, mode: str, periods: float) -> float:
     """Calculate compounded balance based on start amount, rate, mode, and periods."""
@@ -24,19 +27,53 @@ def check_stoploss(user_data: dict, balance: float) -> bool:
 
 def calculate_progress(user_data: dict) -> dict:
     """Calculate user progress metrics."""
+    logger = logging.getLogger(__name__) # Ensure logger is defined
+
+    default_error_return = {
+        "days_passed": 0,
+        "expected_balance": 0.0,
+        "today_profit_goal": 0.0,
+        "stoploss_level": None,
+        "current_balance": 0.0,
+        "status_badge": "🔴" # Or a new badge like "ERR"
+    }
+
     if not user_data.get("target"):
         return {
-            "days_passed": 0,
-            "expected_balance": 0.0,
-            "today_profit_goal": 0.0,
-            "stoploss_level": None,
-            "current_balance": 0.0,
-            "status_badge": "🔴"
+            **default_error_return,
+            "error": "No target set"
         }
 
     target = user_data["target"]
-    start_amount = float(target["start_amount"])
-    rate = float(target["rate"])
+    user_id = user_data.get('id', 'unknown_user') # For logging
+
+    try:
+        start_amount = float(target["start_amount"])
+    except ValueError:
+        logger.error(f"ValueError for user_id: {user_id} - start_amount is not a valid number.")
+        return {
+            **default_error_return,
+            "error": "Invalid target data: start_amount is not a valid number."
+        }
+
+    try:
+        rate = float(target["rate"])
+    except ValueError:
+        logger.error(f"ValueError for user_id: {user_id} - rate is not a valid number.")
+        return {
+            **default_error_return,
+            "error": "Invalid target data: rate is not a valid number."
+        }
+
+    try:
+        target_amount_val = float(target["target_amount"])
+    except ValueError:
+        logger.error(f"ValueError for user_id: {user_id} - target_amount is not a valid number.")
+        return {
+            **default_error_return,
+            "error": "Invalid target data: target_amount is not a valid number."
+        }
+
     mode = target["mode"]
     start_date = user_data.get("start_date")
     history = user_data.get("history", [])
@@ -88,5 +125,9 @@ def calculate_progress(user_data: dict) -> dict:
         "today_profit_goal": today_profit_goal,
         "stoploss_level": stoploss_level,
         "current_balance": current_balance,
-        "status_badge": status_badge
+        "status_badge": status_badge,
+        "start_amount_val": start_amount,
+        "target_amount_val": target_amount_val,
+        "rate_val": rate,
+        "error": None # Explicitly set error to None for successful returns
     }
