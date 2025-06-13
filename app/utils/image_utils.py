@@ -35,7 +35,7 @@ def draw_progress_bar(draw, x, y, width, height, progress, bg_color, fill_color)
     # Border
     draw.rectangle([x, y, x + width, y + height], outline=(150, 150, 150), width=2)
 
-def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) -> bytes:
+def generate_daily_profile_card(user_data: dict, progress_data: dict, profile_photo: bytes = None) -> bytes:
     """Generate enhanced Daily Profile Card with beautiful design."""
     width, height = 900, 700
     
@@ -90,9 +90,61 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
     language = user_data.get("language", "en")
     name = user_data.get("name", "User")
     currency = user_data.get("currency", CURRENCY)
-    progress = calculate_progress(user_data)
+    # progress = calculate_progress(user_data) # Removed: progress_data is now passed as an argument
 
-    # Header section
+    # Check for errors from progress_data
+    if progress_data.get("error"):
+        # Simplified error card
+        error_title_text = MESSAGES[language].get("data_error_title", "Data Error")
+        error_message = progress_data["error"]
+
+        # Clear previous drawings for header if any were made (though none are before this check)
+        # Redraw basic card structure for error message
+        draw.rectangle([card_x, card_y, card_x + card_width, card_y + card_height],
+                       fill=card_bg) # Re-fill card background
+
+        # Error Title
+        title_x_err = card_x + (card_width - draw.textlength(error_title_text, font=font_title)) / 2
+        draw.text((title_x_err, card_y + 40), error_title_text, font=font_title, fill=accent_red)
+
+        # User Name
+        name_text_err = f"{MESSAGES[language].get('user_label', 'User')}: {name}"
+        name_x_err = card_x + (card_width - draw.textlength(name_text_err, font=font_large)) / 2
+        draw.text((name_x_err, card_y + 100), name_text_err, font=font_large, fill=text_primary)
+
+        # Error Message
+        # Simple word wrap for error message
+        error_lines = []
+        max_chars_per_line = 50 # Adjust as needed
+        words = error_message.split()
+        current_line = ""
+        for word in words:
+            if draw.textlength(current_line + word, font=font_medium) <= card_width - 80: # 40px padding each side
+                current_line += word + " "
+            else:
+                error_lines.append(current_line.strip())
+                current_line = word + " "
+        error_lines.append(current_line.strip())
+
+        err_y_offset = card_y + 160
+        for line in error_lines:
+            line_x_err = card_x + (card_width - draw.textlength(line, font=font_medium)) / 2
+            draw.text((line_x_err, err_y_offset), line, font=font_medium, fill=accent_red)
+            err_y_offset += font_medium.getbbox("A")[3] + 5 # Spacing based on font height
+
+        # Footer
+        footer_y_err = card_y + card_height - 40
+        footer_text_err = "📊 Compounding Tracker Bot"
+        text_width_err = draw.textlength(footer_text_err, font=font_tiny)
+        draw.text((card_x + (card_width - text_width_err) // 2, footer_y_err),
+                 footer_text_err, font=font_tiny, fill=text_secondary)
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG", quality=95)
+        buffer.seek(0)
+        return buffer.getvalue()
+
+    # Header section (if no error)
     header_y = card_y + 20
     
     # Profile photo section
@@ -155,20 +207,20 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
         y_offset = content_y
         
         # Day counter with highlight
-        day_text = f"{MESSAGES[language]['day_label']} {progress['days_passed'] + 1}"
+        day_text = f"{MESSAGES[language]['day_label']} {progress_data['days_passed'] + 1}"
         day_bg_width = len(day_text) * 12 + 20
         draw.rectangle([left_col_x - 5, y_offset - 5, left_col_x + day_bg_width, y_offset + 25], 
                       fill=accent_blue, outline=accent_blue)
         draw.text((left_col_x, y_offset), day_text, font=font_medium, fill=(255, 255, 255))
         y_offset += 45
 
-        # Target amount
-        target_text = f"🎯 {MESSAGES[language]['target_label']}: {currency}{float(target['target_amount']):,.2f}"
+        # Target amount - Use validated value
+        target_text = f"🎯 {MESSAGES[language]['target_label']}: {currency}{progress_data['target_amount_val']:,.2f}"
         draw.text((left_col_x, y_offset), target_text, font=font_medium, fill=text_primary)
         y_offset += 35
 
-        # Start amount
-        start_text = f"💰 {MESSAGES[language]['start_label']}: {currency}{float(target['start_amount']):,.2f}"
+        # Start amount - Use validated value
+        start_text = f"💰 {MESSAGES[language]['start_label']}: {currency}{progress_data['start_amount_val']:,.2f}"
         draw.text((left_col_x, y_offset), start_text, font=font_medium, fill=text_secondary)
         y_offset += 35
 
@@ -181,24 +233,24 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
         y_offset = content_y
 
         # Expected balance
-        expected_text = f"🎯 {MESSAGES[language]['expected_label']}: {currency}{progress['expected_balance']:,.2f}"
+        expected_text = f"🎯 {MESSAGES[language]['expected_label']}: {currency}{progress_data['expected_balance']:,.2f}"
         draw.text((right_col_x, y_offset), expected_text, font=font_medium, fill=accent_blue)
         y_offset += 35
 
         # Current balance
-        current_text = f"💼 {MESSAGES[language]['current_label']}: {currency}{progress['current_balance']:,.2f}"
-        balance_color = accent_green if progress['current_balance'] >= progress['expected_balance'] else accent_red
+        current_text = f"💼 {MESSAGES[language]['current_label']}: {currency}{progress_data['current_balance']:,.2f}"
+        balance_color = accent_green if progress_data['current_balance'] >= progress_data['expected_balance'] else accent_red
         draw.text((right_col_x, y_offset), current_text, font=font_medium, fill=balance_color)
         y_offset += 35
 
         # Profit goal
-        profit_text = f"💵 {MESSAGES[language]['profit_goal_label']}: {currency}{progress['today_profit_goal']:,.2f}"
+        profit_text = f"💵 {MESSAGES[language]['profit_goal_label']}: {currency}{progress_data['today_profit_goal']:,.2f}"
         draw.text((right_col_x, y_offset), profit_text, font=font_medium, fill=text_secondary)
         y_offset += 35
 
         # Stop-loss
-        if progress['stoploss_level']:
-            stoploss_text = f"📉 {MESSAGES[language]['stoploss_label']}: {currency}{progress['stoploss_level']:,.2f}"
+        if progress_data['stoploss_level']:
+            stoploss_text = f"📉 {MESSAGES[language]['stoploss_label']}: {currency}{progress_data['stoploss_level']:,.2f}"
         else:
             stoploss_text = f"📉 {MESSAGES[language]['stoploss_label']}: {MESSAGES[language]['not_set']}"
         draw.text((right_col_x, y_offset), stoploss_text, font=font_medium, fill=text_secondary)
@@ -209,15 +261,15 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
         progress_label = f"{MESSAGES[language]['progress_label']}:"
         draw.text((left_col_x, progress_y), progress_label, font=font_medium, fill=text_primary)
         
-        # Calculate progress percentage
-        target_amount = float(target['target_amount'])
-        start_amount = float(target['start_amount'])
-        current_balance = progress['current_balance']
+        # Calculate progress percentage - Use validated values
+        target_val = progress_data['target_amount_val']
+        start_val = progress_data['start_amount_val']
+        current_balance = progress_data['current_balance']
         
-        if target_amount > start_amount:
-            progress_percent = (current_balance - start_amount) / (target_amount - start_amount)
+        if target_val > start_val:
+            progress_percent = (current_balance - start_val) / (target_val - start_val)
         else:
-            progress_percent = 0
+            progress_percent = 0 # Avoid division by zero or negative progress if start > target
         
         # Progress bar
         bar_y = progress_y + 30
@@ -245,12 +297,12 @@ def generate_daily_profile_card(user_data: dict, profile_photo: bytes = None) ->
 
         # Status badge
         status_y = bar_y + bar_height + 40
-        status_text = f"{MESSAGES[language]['status_label']}: {progress['status_badge']}"
+        status_text = f"{MESSAGES[language]['status_label']}: {progress_data['status_badge']}"
         
         # Status background color
-        if progress['status_badge'] == "🟢":
+        if progress_data['status_badge'] == "🟢":
             status_bg = accent_green
-        elif progress['status_badge'] == "🟡":
+        elif progress_data['status_badge'] == "🟡":
             status_bg = accent_yellow
         else:
             status_bg = accent_red

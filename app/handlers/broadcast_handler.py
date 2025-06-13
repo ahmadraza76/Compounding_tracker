@@ -1,4 +1,5 @@
 # app/handlers/broadcast_handler.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import get_user_data, update_user_data
@@ -8,7 +9,7 @@ from app.config.messages import MESSAGES
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Initiate broadcast process for owner."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
     if user_id != OWNER_ID:
@@ -24,5 +25,5 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         parse_mode="Markdown"
     )
 
-    update_user_data(user_id, {"awaiting": "broadcast"})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": "broadcast"})
     return BROADCAST

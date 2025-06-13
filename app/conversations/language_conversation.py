@@ -1,4 +1,5 @@
 # app/conversations/language_conversation.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import update_user_data, get_user_data
@@ -8,8 +9,8 @@ from app.config.messages import MESSAGES
 async def handle_language_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process language choice."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
-    language = user_data.get("language", "en")
+    user_data = await asyncio.to_thread(get_user_data, user_id)
+    language = user_data.get("language", "en") # Existing language for prompt if needed
     text = update.message.text.strip().lower()
 
     if text not in ["hi", "en", "hindi", "english"]:
@@ -21,7 +22,7 @@ async def handle_language_input(update: Update, context: ContextTypes.DEFAULT_TY
 
     new_language = "hi" if text in ["hi", "hindi"] else "en"
 
-    update_user_data(user_id, {
+    await asyncio.to_thread(update_user_data, user_id, {
         "language": new_language,
         "awaiting": None
     })
@@ -36,10 +37,11 @@ async def handle_language_input(update: Update, context: ContextTypes.DEFAULT_TY
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel language selection process."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    # Fetch user_data to determine the language for the cancellation message
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         MESSAGES[language]["cancel"],

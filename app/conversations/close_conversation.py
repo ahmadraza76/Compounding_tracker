@@ -1,4 +1,5 @@
 # app/conversations/close_conversation.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from datetime import datetime
@@ -11,7 +12,7 @@ from app.config.messages import MESSAGES
 async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process closing balance input from user."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
     text = update.message.text.strip()
 
@@ -26,7 +27,8 @@ async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYP
             return CLOSING
 
         # Check stop-loss
-        if check_stoploss(user_data, balance):
+        is_stoploss_triggered = await asyncio.to_thread(check_stoploss, user_data, balance)
+        if is_stoploss_triggered:
             await update.message.reply_text(
                 MESSAGES[language]["stoploss_alert"],
                 parse_mode="Markdown"
@@ -51,7 +53,7 @@ async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYP
                     parse_mode="Markdown"
                 )
 
-        update_user_data(user_id, {
+        await asyncio.to_thread(update_user_data, user_id, {
             "history": history,
             "awaiting": None
         })
@@ -74,10 +76,10 @@ async def handle_closing_input(update: Update, context: ContextTypes.DEFAULT_TYP
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel balance closing process."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         MESSAGES[language]["cancel"],

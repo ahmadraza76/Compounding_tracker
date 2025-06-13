@@ -165,7 +165,12 @@ Need help? Contact support or check /settings for more options!""",
         "status_label": "Status",
         "progress_label": "Progress",
         "not_set": "Not Set",
-        "status_image_error": "Sorry, there was an error generating your status image. Please try again later."
+        "status_image_error": "Sorry, there was an error generating your status image. Please try again later.",
+        "status_data_error": """⚠️ Your status cannot be displayed due to a data issue:
+
+{error_details}
+
+Please check your target settings or use /reset if the issue persists."""
     },
     
     "hi": {
@@ -333,6 +338,11 @@ Need help? Contact support or check /settings for more options!""",
         "status_label": "स्थिति",
         "progress_label": "प्रगति",
         "not_set": "सेट नहीं",
-        "status_image_error": "क्षमा करें, आपकी स्थिति छवि बनाने में कोई त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+        "status_image_error": "क्षमा करें, आपकी स्थिति छवि बनाने में कोई त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
+        "status_data_error": """⚠️ डेटा समस्या के कारण आपकी स्थिति प्रदर्शित नहीं की जा सकती:
+
+{error_details}
+
+कृपया अपनी लक्ष्य सेटिंग जांचें या यदि समस्या बनी रहती है तो /reset का उपयोग करें।"""
     }
 }

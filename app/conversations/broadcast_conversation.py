@@ -1,4 +1,5 @@
 # app/conversations/broadcast_conversation.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import load_data, get_user_data, update_user_data
@@ -8,7 +9,7 @@ from app.config.messages import MESSAGES
 async def handle_broadcast_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process broadcast message input."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
     if user_id != OWNER_ID:
@@ -27,7 +28,7 @@ async def handle_broadcast_input(update: Update, context: ContextTypes.DEFAULT_T
         )
         return BROADCAST
 
-    data = load_data()
+    data = await asyncio.to_thread(load_data)
     for uid in data.keys():
         try:
             await context.bot.send_message(
@@ -38,7 +39,7 @@ async def handle_broadcast_input(update: Update, context: ContextTypes.DEFAULT_T
         except Exception as e:
             print(f"Failed to send broadcast to {uid}: {e}")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         "✅ Message successfully broadcasted to all users!",
@@ -50,10 +51,10 @@ async def handle_broadcast_input(update: Update, context: ContextTypes.DEFAULT_T
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel broadcast process."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         MESSAGES[language]["cancel"],

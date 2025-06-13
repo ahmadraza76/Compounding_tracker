@@ -1,4 +1,5 @@
 # app/conversations/stoploss_conversation.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from app.utils.data_utils import update_user_data, get_user_data
@@ -8,7 +9,7 @@ from app.config.messages import MESSAGES
 async def handle_stoploss_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process stop-loss percentage input."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
     text = update.message.text.strip()
 
@@ -22,7 +23,7 @@ async def handle_stoploss_input(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return STOPLOSS
 
-        update_user_data(user_id, {
+        await asyncio.to_thread(update_user_data, user_id, {
             "stoploss": stoploss,
             "awaiting": None
         })
@@ -45,10 +46,10 @@ async def handle_stoploss_input(update: Update, context: ContextTypes.DEFAULT_TY
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel stop-loss setting process."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         MESSAGES[language]["cancel"],

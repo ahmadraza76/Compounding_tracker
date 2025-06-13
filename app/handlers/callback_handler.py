@@ -1,4 +1,5 @@
 # app/handlers/callback_handler.py
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from app.utils.data_utils import update_user_data, get_user_data
@@ -9,7 +10,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
     """Handle callback queries from settings inline buttons."""
     query = update.callback_query
     user_id = str(query.from_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
     data = query.data
 
@@ -20,7 +21,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             MESSAGES[language]["target_prompt"],
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "target"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "target"})
         return TARGET
 
     elif data.startswith("edit_stoploss_"):
@@ -29,7 +30,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             "Please enter the stop-loss percentage (0-100).\nExample: *10*",
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "stoploss"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "stoploss"})
         return STOPLOSS
 
     elif data.startswith("edit_name_"):
@@ -38,7 +39,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             "Please enter your new name.",
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "name"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "name"})
         return NAME
 
     elif data.startswith("edit_rate_mode_"):
@@ -47,7 +48,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             "Please enter the new rate and mode.\nExample: *5, daily*",
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "rate_mode"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "rate_mode"})
         return RATE_MODE
 
     elif data.startswith("edit_currency_"):
@@ -56,7 +57,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             "Please enter the new currency symbol.\nExample: *$*",
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "currency"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "currency"})
         return CURRENCY_CHANGE
 
     elif data.startswith("update_balance_"):
@@ -64,12 +65,14 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
             MESSAGES[language]["close_prompt"],
             parse_mode="Markdown"
         )
-        update_user_data(user_id, {"awaiting": "closing"})
+        await asyncio.to_thread(update_user_data, user_id, {"awaiting": "closing"})
         return CLOSING
 
     elif data.startswith("toggle_reminders_"):
         reminders = not user_data.get("reminders", False)
-        update_user_data(user_id, {"reminders": reminders})
+        await asyncio.to_thread(update_user_data, user_id, {"reminders": reminders})
+        # user_data here might be stale for the 'reminders' field if we needed to read it again for some other logic.
+        # However, the reply text correctly uses the 'reminders' variable which holds the new state.
         await query.message.reply_text(
             f"✅ रिमाइंडर {'चालू' if reminders else 'बंद'} किए गए!" if language == "hi" else
             f"✅ Reminders {'enabled' if reminders else 'disabled'}!",
@@ -91,7 +94,7 @@ async def handle_settings_callback(update: Update, context: ContextTypes.DEFAULT
         return None
 
     elif data.startswith("confirm_reset_"):
-        update_user_data(user_id, {
+        await asyncio.to_thread(update_user_data, user_id, {
             "history": [],
             "target": None,
             "stoploss": None,

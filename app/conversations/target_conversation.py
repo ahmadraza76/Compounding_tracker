@@ -1,4 +1,5 @@
 # app/conversations/target_conversation.py
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from datetime import datetime
@@ -10,7 +11,7 @@ from app.config.messages import MESSAGES
 async def handle_target_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process target input from user."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
     text = update.message.text.strip()
 
@@ -48,7 +49,7 @@ async def handle_target_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         tz = pytz.timezone("Asia/Kolkata")
         start_date = datetime.now(tz).strftime("%Y-%m-%d")
 
-        update_user_data(user_id, {
+        await asyncio.to_thread(update_user_data, user_id, {
             "target": {
                 "start_amount": start_amount,
                 "target_amount": target_amount,
@@ -80,10 +81,10 @@ async def handle_target_input(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel target setting process."""
     user_id = str(update.effective_user.id)
-    user_data = get_user_data(user_id)
+    user_data = await asyncio.to_thread(get_user_data, user_id)
     language = user_data.get("language", "en")
 
-    update_user_data(user_id, {"awaiting": None})
+    await asyncio.to_thread(update_user_data, user_id, {"awaiting": None})
 
     await update.message.reply_text(
         MESSAGES[language]["cancel"],
