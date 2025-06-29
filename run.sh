@@ -1,4 +1,4 @@
 #!/bin/bash
-python -m pip install --no-cache-dir -r requirements.txt
+python3 -m pip install --no-cache-dir -r requirements.txt
 export PYTHONPATH=$PYTHONPATH:/app
-python -m app.main
+python3 -m app.main

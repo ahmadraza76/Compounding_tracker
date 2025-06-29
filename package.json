@@ -5,7 +5,8 @@
   "main": "app/main.py",
   "scripts": {
     "start": "python3 -m app.main",
-    "install": "python -m pip install -r requirements.txt"
+    "install": "python3 -m pip install -r requirements.txt",
+    "dev": "python3 -m app.main"
   },
   "keywords": ["telegram", "bot", "compounding", "finance", "tracker"],
   "author": "Your Name",
