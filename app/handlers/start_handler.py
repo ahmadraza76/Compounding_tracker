@@ -3,6 +3,7 @@ from telegram import Update, InputFile
 from telegram.ext import ContextTypes
 from app.utils.data_utils import update_user_data, get_user_data
 from app.utils.image_utils import generate_daily_profile_card
+from app.utils.calculation_utils import calculate_progress
 from app.config.messages import MESSAGES
 import telegram.error
 
@@ -36,7 +37,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         print(f"Error fetching profile photo for user {user_id}: {str(e)}")
 
-    daily_profile_card = generate_daily_profile_card(get_user_data(user_id), profile_photo)
+    # Calculate progress data before generating the profile card
+    user_data = get_user_data(user_id)
+    progress_data = calculate_progress(user_data)
+    
+    daily_profile_card = generate_daily_profile_card(user_data, progress_data, profile_photo)
 
     await update.message.reply_photo(
         photo=InputFile(daily_profile_card),
