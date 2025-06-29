@@ -4,9 +4,9 @@
   "description": "Powerful compounding telegram bot for tracking financial progress",
   "main": "app/main.py",
   "scripts": {
-    "start": "python3 -m app.main",
-    "install": "python3 -m ensurepip --upgrade && python3 -m pip install -r requirements.txt",
-    "dev": "python3 -m app.main"
+    "start": "python3 app/main.py",
+    "dev": "python3 app/main.py",
+    "install-deps": "python3 -m pip install -r requirements.txt"
   },
   "keywords": ["telegram", "bot", "compounding", "finance", "tracker"],
   "author": "Your Name",
